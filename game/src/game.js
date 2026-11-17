@@ -70,9 +70,11 @@ export function chainMult(g) {
   return Math.min(m.chainCap, Math.max(m.chainFloor, raw));
 }
 
-export function addScore(g, raw, x, y, label) {
+export function addScore(g, raw, x, y, label, noChain) {
   const m = mods(g);
-  const pts = Math.round(raw * chainMult(g) * m.scoreMul);
+  // Great Shadow bounties are flat (difficulty/sigil only) — the chain
+  // multiplier is for shadow burns, or a late boss kill would pay out ×10.
+  const pts = Math.round(raw * (noChain ? 1 : chainMult(g)) * m.scoreMul);
   g.score += pts;
   if (x !== undefined) addFloater(g, x, y, '+' + pts.toLocaleString('en-US') + (label ? ' ' + label : ''), '#ffe9a3');
   return pts;
@@ -130,7 +132,7 @@ export function startNight(g, night) {
   g.spawnPlan = [];
   for (let i = 0; i < total; i++) g.spawnPlan.push(pool[Math.floor(rng() * pool.length)]);
   g.spawnInterval = Math.max(1.5, 3.4 - night * 0.16) * m.spawnMul;
-  g.spawnTimer = 1.2;
+  g.spawnTimer = bossesForNight(night).length ? 4 : 1.2; // boss nights breathe first
   // Boss setup.
   const kinds = bossesForNight(night);
   g.bossQueue = kinds.slice(1);
@@ -403,12 +405,12 @@ export function update(g, dt) {
     const b = g.boss;
     b.t += dt;
     if (g.beam.bossHits.length) {
-      b.hp -= 26 * m.burnMul * m.bossMul * dt;
+      b.hp -= 75 * m.burnMul * m.bossMul * dt;
       const bx = cellCenterX(b.cell.x), by = cellCenterY(b.cell.y);
       if (Math.random() < dt * 18) burst(g, bx + (Math.random() - 0.5) * 40, by + (Math.random() - 0.5) * 40, b.def.color, 2, 70);
       if (b.hp <= 0) {
         b.hp = 0;
-        addScore(g, b.def.score, bx, by - 30, 'GREAT SHADOW FELLED');
+        addScore(g, b.def.score, bx, by - 30, 'GREAT SHADOW FELLED', true);
         g.embers += Math.round(b.def.embers * m.emberMul);
         g.stats.bossesFelled++;
         burst(g, bx, by, '#ffffff', 46, 200);
@@ -468,7 +470,7 @@ export function update(g, dt) {
       }
     }
     if (dist <= 30) {
-      const drain = (m.aegis ? 7 : 14) * dt;
+      const drain = (m.aegis ? 5 : 9) * dt;
       g.lanterns[ti].integrity -= drain;
       if (g.lanterns[ti].integrity <= 0) { g.lanterns[ti].integrity = 0; snuffLantern(g, ti); if (g.screen !== 'play') return; }
     }
