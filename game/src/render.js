@@ -213,7 +213,8 @@ function drawBoard(ctx, g, t) {
     ctx.strokeStyle = b.def.color; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(bx, by, b.def.radius * pulse, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     txt(ctx, b.kind === 'moth' ? '🦋' : '👁', bx, by + 12, b.def.radius, '#fff', 'center');
-    txt(ctx, b.def.name, bx, by - b.def.radius - 14, 12, b.def.color, 'center', true, MONO);
+    const nameX = Math.max(BOARD_X + 150, Math.min(BOARD_X + BOARD_W - 150, bx));
+    txt(ctx, b.def.name, nameX, by - b.def.radius - 14, 12, b.def.color, 'center', true, MONO);
     bar(ctx, bx - 52, by + b.def.radius + 8, 104, 9, b.hp / b.max, '#f43f5e', '');
   }
 }
@@ -296,10 +297,10 @@ function drawHUD(ctx, g, t) {
   const litCount = g.room.lanterns.filter((_, i) => lanternLit(g, i)).length;
   const bossPart = g.boss && g.boss.hp > 0 ? ' + burn ' + g.boss.def.name.split(',')[0] : '';
   panel(ctx, BOARD_X, 68, BOARD_W, 34, null, '#3f9e6b');
-  txt(ctx, 'WIN:  light all ' + g.room.lanterns.length + ' lanterns at once' + bossPart + '   (' + litCount + '/' + g.room.lanterns.length + ' lit' + (g.hold > 0 ? ' — HOLD ' + g.hold.toFixed(1) + 's' : '') + ')', BOARD_X + 12, 91, 15, '#7dffb0', 'left', true, MONO);
+  txt(ctx, 'WIN: light all ' + g.room.lanterns.length + ' lanterns at once' + bossPart + ' (' + litCount + '/' + g.room.lanterns.length + ' lit' + (g.hold > 0 ? ' — HOLD ' + g.hold.toFixed(1) + 's' : '') + ')', BOARD_X + 12, 91, 13.5, '#7dffb0', 'left', true, MONO);
   const weakest = Math.round(Math.min(...g.lanterns.map((l) => l.integrity)) / m.lanternMax * 100);
   panel(ctx, BOARD_X, 106, BOARD_W, 34, null, '#c03f5f');
-  txt(ctx, 'LOSE:  dawn ends (' + Math.ceil(g.dawnLeft) + 's left) or a lantern is snuffed (weakest ' + weakest + '%)', BOARD_X + 12, 129, 15, '#ff8aa5', 'left', true, MONO);
+  txt(ctx, 'LOSE: dawn ends (' + Math.ceil(g.dawnLeft) + 's left) or a lantern is snuffed (weakest ' + weakest + '%)', BOARD_X + 12, 129, 13.5, '#ff8aa5', 'left', true, MONO);
 
   // Left panel: dual bars, lanterns, relics, blessings.
   panel(ctx, 10, 68, 272, 300, 'THE DAWN', realm.trim);
@@ -456,11 +457,10 @@ export function drawTitle(ctx, g, t) {
     '',
     'Clear a night → draft 1 of 3 blessings.',
     'Fell a Great Shadow → claim a relic.',
-    'WIN the run: light Night 10 and burn the',
-    'Nightmare Moth. LOSE: dawn ends, or any',
-    'lantern is snuffed out.',
+    'WIN: light Night 10, burn the Nightmare Moth.',
+    'LOSE: dawn ends, or a lantern is snuffed.',
   ];
-  how.forEach((s, i) => txt(ctx, s, 38, 226 + i * 19, 13.5, '#d8d2f2'));
+  how.forEach((s, i) => txt(ctx, s, 38, 224 + i * 18, 13.5, '#d8d2f2'));
 
   panel(ctx, 856, 188, 400, 300, 'BESTIARY — KNOW YOUR SHADOWS', '#c03f5f');
   BESTIARY.forEach((b, i) => {
@@ -542,6 +542,9 @@ export function drawEnd(ctx, g, t) {
   ctx.fillStyle = won ? 'rgba(10,10,4,0.82)' : 'rgba(12,4,8,0.86)'; ctx.fillRect(0, 0, W, H);
   const es = g.endStats;
   if (!es) return;
+  // Opaque backing so the ledger reads clean over the dimmed final board.
+  ctx.fillStyle = '#0a0816';
+  ctx.beginPath(); ctx.roundRect(322, 132, 816, 480, 10); ctx.fill();
   txt(ctx, won ? '☀ DAWN ETERNAL ☀' : '🌑 THE DARK PREVAILS 🌑', W / 2, 84, 42, won ? '#ffe9a3' : '#ff8aa5', 'center', true);
   if (!won && es.reason) txt(ctx, es.reason, W / 2, 114, 16, '#e8e2ff', 'center');
   // Letter rank medallion.

@@ -4,9 +4,9 @@
 
 import { createGame, startRun, startNight, rotateCell, pickDraft, rerollDraft, update, refreshBeam, mods, setBanner, addFloater, finishRun } from './game.js';
 import { draw, UI, W, H } from './render.js';
-import { DIFFICULTIES, BESTIARY, TOTAL_NIGHTS } from './data.js';
+import { DIFFICULTIES, BESTIARY, BOSS_KINDS, TOTAL_NIGHTS } from './data.js';
 import { solveRoom, cellCenterX, cellCenterY } from './world.js';
-import { hashSeed } from './rng.js';
+import { makeRng } from './rng.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -90,7 +90,13 @@ function stageCover() {
   g.score = 48750; g.embers = 286;
   g.stats.burned = 87; g.stats.rotations = 121; g.stats.bossesFelled = 3; g.stats.drafts = 8;
   g.dawnLeft = Math.round(g.dawnMax * 0.62);
-  if (g.boss) { g.boss.hp = Math.round(g.boss.max * 0.38); g.bossQueue = []; }
+  // The cover is the FINAL boss fight: Sable has already fallen (3 felled in
+  // the stats below) and the Nightmare Moth herself holds the beam path.
+  if (g.boss) {
+    const def = BOSS_KINDS.moth;
+    g.boss = { kind: 'moth', def, hp: Math.round(def.hp * 0.38), max: def.hp, cell: g.boss.cell, stir: 5, t: 0 };
+    g.bossQueue = [];
+  }
   g.spawnPlan = ['mite', 'moth', 'husk', 'spitter', 'prowler', 'splitter', 'mite', 'moth'];
   stageEnemy('mite', 8, 2, 0.6);
   stageEnemy('moth', 9, 5, 0.8);
@@ -101,17 +107,18 @@ function stageCover() {
   stageEnemy('mite', 5, 6, 0.4);
   g.chain = 6; g.chainTimer = 99; g.bestChain = 9;
   refreshBeam(g);
-  setBanner(g, 'CHAIN ×4', '6 shadows burned in a row — the Moth is breaking', 999);
+  setBanner(g, 'CHAIN ×6', '6 shadows burned in a row — the Moth is breaking', 999);
   g.banner.t = 0.4;
   addFloater(g, cellCenterX(8), cellCenterY(2) - 18, '+338', '#ffe9a3');
   addFloater(g, cellCenterX(6), cellCenterY(1) - 18, '+450', '#ffe9a3');
   addFloater(g, cellCenterX(9), cellCenterY(5) - 18, '+525', '#7dffb0');
   addFloater(g, cellCenterX(5), cellCenterY(6) - 18, '+200', '#ffe9a3');
   for (const f of g.floaters) f.ttl = 999;
-  for (let i = 0; i < 42; i++) {
+  const prng = makeRng(20240);
+  for (let i = 0; i < 34; i++) {
     g.particles.push({
-      x: 340 + ((i * 197) % 540), y: 190 + ((i * 131) % 360),
-      vx: 0, vy: 0, t: (i % 7) * 0.06, ttl: 999, color: i % 3 ? '#ffd76a' : '#f43f5e',
+      x: 330 + prng() * 560, y: 180 + prng() * 380,
+      vx: 0, vy: 0, t: prng() * 0.4, ttl: 999, color: i % 3 ? '#ffd76a' : '#f43f5e',
     });
   }
 }
