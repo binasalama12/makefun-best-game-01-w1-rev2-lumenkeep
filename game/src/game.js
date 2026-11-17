@@ -58,7 +58,7 @@ export function mods(g) {
     bossMul: Math.pow(1.5, count('hearth')),
     burnRadius: 15 + (has('widelens') ? 8 : 0),
     splitMul: relic('sovereign') ? 1.5 : 1,
-    lanternMax: 100 + (relic('ironwick') ? 50 : 0),
+    lanternMax: 130 + (relic('ironwick') ? 50 : 0),
     spawnMul: relic('nightglass') ? 1.12 : 1,
     extraDawn: count('firstlight') * 20 + (relic('sunstone') ? 10 : 0),
   };
@@ -244,10 +244,16 @@ function spawnEnemy(g, typeId, x, y, noSplit) {
   const def = TYPE[typeId];
   const rng = Math.random;
   if (x === undefined) {
-    const edge = rng();
-    if (edge < 0.55) { x = cellCenterX(COLS - 1) + 40; y = cellCenterY(randInt(Math.random, 0, ROWS - 1)); }
-    else if (edge < 0.8) { x = cellCenterX(randInt(Math.random, 3, COLS - 1)); y = cellCenterY(0) - 36; }
-    else { x = cellCenterX(randInt(Math.random, 3, COLS - 1)); y = cellCenterY(ROWS - 1) + 36; }
+    // Spawn at a board edge, but never on top of a lantern — a shadow that
+    // materialises already gnawing is a loss the player could not answer.
+    for (let tries = 0; tries < 12; tries++) {
+      const edge = rng();
+      if (edge < 0.55) { x = cellCenterX(COLS - 1) + 40; y = cellCenterY(randInt(Math.random, 0, ROWS - 1)); }
+      else if (edge < 0.8) { x = cellCenterX(randInt(Math.random, 3, COLS - 1)); y = cellCenterY(0) - 36; }
+      else { x = cellCenterX(randInt(Math.random, 3, COLS - 1)); y = cellCenterY(ROWS - 1) + 36; }
+      const nearLantern = g.room.lanterns.some((L) => Math.hypot(cellCenterX(L.x) - x, cellCenterY(L.y) - y) < 140);
+      if (!nearLantern) break;
+    }
   }
   g.enemies.push({
     type: typeId, def, x, y,
@@ -405,7 +411,7 @@ export function update(g, dt) {
     const b = g.boss;
     b.t += dt;
     if (g.beam.bossHits.length) {
-      b.hp -= 75 * m.burnMul * m.bossMul * dt;
+      b.hp -= 90 * m.burnMul * m.bossMul * dt;
       const bx = cellCenterX(b.cell.x), by = cellCenterY(b.cell.y);
       if (Math.random() < dt * 18) burst(g, bx + (Math.random() - 0.5) * 40, by + (Math.random() - 0.5) * 40, b.def.color, 2, 70);
       if (b.hp <= 0) {
@@ -470,7 +476,7 @@ export function update(g, dt) {
       }
     }
     if (dist <= 30) {
-      const drain = (m.aegis ? 5 : 9) * dt;
+      const drain = (m.aegis ? 4 : 7.5) * dt;
       g.lanterns[ti].integrity -= drain;
       if (g.lanterns[ti].integrity <= 0) { g.lanterns[ti].integrity = 0; snuffLantern(g, ti); if (g.screen !== 'play') return; }
     }
